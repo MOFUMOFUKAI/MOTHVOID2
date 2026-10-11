@@ -1,7 +1,7 @@
 /* Game data. No runtime state belongs in this file. */
 (function(root){'use strict';
 const C={width:480,height:720,playerY:594,version:'35.28',
- explosionFrames:{'enemy-feeble-mild':[.045,.030,.040,.055,.070,.090,.110,.140],'enemy-standard-tough':[.055,.035,.045,.075,.100,.130,.160,.180],'enemy-powerful':[.060,.035,.045,.095,.120,.160,.190,.215]},
+ explosionFrames:{'rock-small':[.035,.035,.050,.070,.090,.110,.120,.130],'rock-medium':[.035,.035,.050,.070,.090,.110,.120,.130],'enemy-feeble-mild':[.045,.030,.040,.055,.070,.090,.110,.140],'enemy-standard-tough':[.055,.035,.045,.075,.100,.130,.160,.180],'enemy-powerful':[.060,.035,.045,.095,.120,.160,.190,.215]},
  tuning:{rockDensity:.6,largeRockChance:.15,chargeDelay:.8,chargeDuration:2,chargeScales:{yamamayu:.8,oomizuao:.6,yonagunisan:1},doubleTapWindow:.2,dodgeStep:60,dodgeDuration:.3,dodgeBoost:2,justFlashDuration:.45,parryMissRecovery:.2,parryHitRecovery:.1,attackWarning:.45,yonagunisanBlastScale:1.6,rockBlastScale:2},
  moths:[
   {id:'yamamayu',hitRadius:11,parryRadius:48,justRadius:32,name:'マダガスカルオナガヤママユ',nameColor:'#ffdc69',color:'#8cdb77',role:'緑 / 三方向',size:68,moveScale:1,dodgeScale:.8,dodgeInv:.2,asset:'assets/moths/anm_mv2_yamamayu_act.png'},
