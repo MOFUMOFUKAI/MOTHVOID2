@@ -7,7 +7,7 @@ p.tutorialAllows=function(step){return !this.tutorial||this.tutorial.step>=step;
 p.pressParry=function(){if(this.tutorialAllows(3))return original.pressParry.call(this);};
 p.swap=function(...args){if(this.tutorialAllows(2))return original.swap.apply(this,args);return false;};
 p.evade=function(...args){if(this.tutorialAllows(1))return original.evade.apply(this,args);};
-p.emit=function(type,...args){original.emit.call(this,type,...args);const t=this.tutorial;if(!t||t.nextAt!==null)return;if(type==='dodge'&&t.step===1||type==='swap'&&t.step===2){t.count++;if(t.count>=(t.step===2?3:1))t.nextAt=this.time+2.5;}};
+p.emit=function(type,...args){original.emit.call(this,type,...args);const t=this.tutorial;if(!t||t.nextAt!==null)return;if(type==='dodge'&&t.step===1||type==='swap'&&t.step===2){t.count++;if(t.count>=(t.step===2?3:2))t.nextAt=this.time+2.5;}};
 p.damage=function(amount){if(!this.tutorial)return original.damage.call(this,amount);if(this.mode!=='playing'||this.inv>0||this.parry>0)return false;this.hpFlash=.2;this.inv=1;this.emit('hurt');return true;};
 p.hitEnemy=function(...args){if(this.tutorial)return false;return original.hitEnemy.apply(this,args);};
 p.replenish=function(){if(!this.tutorial)return original.replenish.call(this);};
