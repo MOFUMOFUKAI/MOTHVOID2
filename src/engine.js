@@ -52,7 +52,7 @@ class Engine{
  effect(x,y,r=30,color='#ffd773'){this.effects.push({x,y,r,color,life:.4,max:.4});}
  finishCombo(){if(this.combo>=2){this.award(this.combo*1000,this.combo*10);this.lastCombo=this.combo;this.comboShow=2;}this.combo=0;this.comboEnd=0;}
  addCombo(meta={}){if(this.combo>0&&this.time<this.comboEnd){this.combo=Math.min(50,this.combo+1);if(meta.just)this.comboEnd+=1;}else if(meta.just||meta.charged){this.combo=1;this.comboEnd=this.time+3;}}
- burst(x,y,key,size,r=0){this.effects.push({kind:'sprite-burst',x,y,key,size,r,life:.64,max:.64});}
+ burst(x,y,key,size,r=0){const duration=C.explosionFrames[key]?.reduce((sum,t)=>sum+t,0)||.64;this.effects.push({kind:'sprite-burst',x,y,key,size,r,life:duration,max:duration});}
  enemyBurst(e){if(e.boss){this.effect(e.x,e.y,e.size*.7,'#fff2bc');return;}const group=e.type.startsWith('Powerful')?'powerful':/^(Standard|Tough)_/.test(e.type)?'standard-tough':'feeble-mild';this.burst(e.x,e.y,'enemy-'+group,Math.max(120,e.size*1.8));}
  kill(e,meta={}){if(e.dead||e.epoch!==this.epoch||this.mode!=='playing')return;e.dead=true;this.enemyBurst(e);this.emit(e.boss?'boss-kill':'kill');this.award(e.score,e.xp,e.x,e.y-e.size/2);
   this.addCombo(meta);
