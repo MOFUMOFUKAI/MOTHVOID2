@@ -44,12 +44,21 @@ function syncUI(){if(lastMode===g.mode)return;lastMode=g.mode;const playing=['pl
 }
 const keymap={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right'},parryKeys=new Set(['KeyF','Space','Enter']);const keys=new Set();
 window.addEventListener('keydown',e=>{if(e.target instanceof HTMLInputElement)return;if(keymap[e.code]||parryKeys.has(e.code)||['KeyK','KeyL','KeyW','KeyS','Escape','KeyP'].includes(e.code))e.preventDefault();sound.unlock();if(g.mode==='title')sound.music(C.titleTrack);if(e.repeat)return;keys.add(e.code);if(keymap[e.code])g.tapDirection(keymap[e.code]);if(parryKeys.has(e.code)){if(g.mode==='title'&&e.code==='Enter')start();else g.pressParry();}if(e.code==='KeyK'||e.code==='KeyW')g.swap(1);if(e.code==='KeyL'||e.code==='KeyS')g.swap(-1);if(e.code==='Escape'||e.code==='KeyP'){g.pause();syncUI();}});
-window.addEventListener('keyup',e=>{keys.delete(e.code);if(keymap[e.code]){const direction=keymap[e.code];g.input[direction]=Object.entries(keymap).some(([k,v])=>v===direction&&keys.has(k));}if(parryKeys.has(e.code)&&![...parryKeys].some(k=>keys.has(k)))g.releaseParry();});
-function loseFocus(){keys.clear();g.input={left:false,right:false};g.clearCharge();if(['playing','transition','interlude'].includes(g.mode)){g.pause();syncUI();}}
+window.addEventListener('keyup',e=>{keys.delete(e.code);if(keymap[e.code]){const direction=keymap[e.code];syncDirections();}if(parryKeys.has(e.code)&&![...parryKeys].some(k=>keys.has(k)))g.releaseParry();});
+function loseFocus(){heldPointers.clear();keys.clear();g.input={left:false,right:false};g.clearCharge();if(['playing','transition','interlude'].includes(g.mode)){g.pause();syncUI();}}
 window.addEventListener('blur',loseFocus);document.addEventListener('visibilitychange',()=>{if(document.hidden)loseFocus();});
 document.querySelector('#pause').onclick=()=>{g.pause();syncUI();};document.querySelector('#mute').onclick=()=>sound.toggle();
-for(const b of document.querySelectorAll('[data-hold]')){b.onpointerdown=e=>{e.preventDefault();sound.unlock();b.setPointerCapture(e.pointerId);g.tapDirection(b.dataset.hold);};const end=()=>g.input[b.dataset.hold]=false;b.onpointerup=end;b.onpointercancel=end;b.onlostpointercapture=end;}
-const pb=document.querySelector('#touch-parry');pb.onpointerdown=e=>{e.preventDefault();sound.unlock();pb.setPointerCapture(e.pointerId);g.pressParry();};pb.onpointerup=()=>g.releaseParry();pb.onpointercancel=()=>g.clearCharge();pb.onlostpointercapture=()=>g.clearCharge();
+// Track each finger independently; release may arrive outside its original button.
+const heldPointers=new Map();let pointerOrder=0;
+function syncDirections(){const directions=[...heldPointers.values()].filter(v=>v.direction).sort((a,b)=>b.order-a.order);const touchDirection=directions[0]?.direction;for(const direction of ['left','right'])g.input[direction]=touchDirection===direction||Object.entries(keymap).some(([key,value])=>value===direction&&keys.has(key));}
+function endPointer(e,cancel=false){const held=heldPointers.get(e.pointerId);if(!held)return;heldPointers.delete(e.pointerId);syncDirections();if(held.parry&&![...heldPointers.values()].some(v=>v.parry)){if(cancel)g.clearCharge();else g.releaseParry();}}
+for(const b of document.querySelectorAll('[data-hold]')){b.onpointerdown=e=>{e.preventDefault();sound.unlock();heldPointers.set(e.pointerId,{button:b,direction:b.dataset.hold,type:e.pointerType,order:++pointerOrder});g.input[b.dataset.hold]=false;g.tapDirection(b.dataset.hold);syncDirections();try{b.setPointerCapture(e.pointerId);}catch{}};b.onlostpointercapture=e=>endPointer(e,true);}
+const pb=document.querySelector('#touch-parry');pb.onpointerdown=e=>{e.preventDefault();sound.unlock();heldPointers.set(e.pointerId,{button:pb,parry:true,type:e.pointerType,order:++pointerOrder});g.pressParry();try{pb.setPointerCapture(e.pointerId);}catch{}};pb.onlostpointercapture=e=>endPointer(e,true);
+window.addEventListener('pointerup',e=>endPointer(e),true);window.addEventListener('pointercancel',e=>endPointer(e,true),true);
+// Safari fallback: reconcile remaining fingers even if a pointer release is lost.
+function reconcileTouches(e){const buttons=new Set([...e.touches].map(t=>t.target.closest?.('.touch-controls button')));for(const [id,held]of [...heldPointers])if(held.type==='touch'&&!buttons.has(held.button))endPointer({pointerId:id},e.type==='touchcancel');}
+window.addEventListener('touchend',reconcileTouches,{capture:true,passive:true});window.addEventListener('touchcancel',reconcileTouches,{capture:true,passive:true});
+window.addEventListener('blur',()=>{heldPointers.clear();syncDirections();});
 const swapButton=document.querySelector('#touch-swap');swapButton.onpointerdown=e=>{e.preventDefault();sound.unlock();g.swap(1);};swapButton.onclick=e=>{if(e.detail===0)g.swap(1);};
 for(const type of ['contextmenu','selectstart'])document.querySelector('.game-shell').addEventListener(type,e=>{if(!e.target.closest('input'))e.preventDefault();});
 const tutorialHud=document.createElement('div');tutorialHud.className='tutorial-hud';tutorialHud.hidden=true;document.querySelector('.screen').append(tutorialHud);let tutorialText='';
