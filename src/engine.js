@@ -3,6 +3,7 @@
 (function(root){'use strict';
 const C=root.MVConfig||(typeof require==='function'?require('./config.js'):null);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),hypot=Math.hypot;
+const within=(dx,dy,r)=>Math.abs(dx)<r&&Math.abs(dy)<r&&dx*dx+dy*dy<r*r;
 class Engine{
  constructor(random=Math.random){this.random=random;this.serial=0;this.epoch=0;this.events=[];this.mode='title';this.reset();this.mode='title';}
  reset(){this.epoch++;this.mode='playing';this.time=0;this.runTime=0;this.score=0;this.level=1;this.exp=0;this.stage=0;this.wave=0;this.loop=1;this.active=0;this.x=240;this.vx=0;this.hpFlash=0;this.inv=0;this.parry=0;this.parryAnim=0;this.parryRecovery=0;this.parryResult=null;this.parryRearm=false;this.revivedCount=0;this.reviveBannerTime=0;this.justFlash=0;this.justOwner=null;this.lastTap={left:null,right:null};this.parryCharged=false;this.held=false;this.hold=0;this.chargeReady=false;this.gauge=0;this.stocks=0;this.dodge=0;this.dodgeCooldown=0;this.grape=0;this.strawberry=0;this.combo=0;this.comboEnd=0;this.lastCombo=0;this.comboShow=0;this.obstacleClock=0;this.spawnClock=0;this.killed=0;this.clearTimer=0;this.input={left:false,right:false};this.moths=C.moths.map(m=>({id:m.id,hp:3,maxHp:3,alive:true}));this.enemies=[];this.bullets=[];this.bombs=[];this.items=[];this.obstacles=[];this.effects=[];this.events=[];this.banner='';this.bannerTime=0;this.musicTime=0;this.beginWave(0,0);}
@@ -52,7 +53,7 @@ class Engine{
  effect(x,y,r=30,color='#ffd773'){this.effects.push({x,y,r,color,life:.4,max:.4});}
  finishCombo(){if(this.combo>=2){this.award(this.combo*1000,this.combo*10);this.lastCombo=this.combo;this.comboShow=2;}this.combo=0;this.comboEnd=0;}
  addCombo(meta={}){if(this.combo>0&&this.time<this.comboEnd){this.combo=Math.min(50,this.combo+1);if(meta.just)this.comboEnd+=1;}else if(meta.just||meta.charged){this.combo=1;this.comboEnd=this.time+3;}}
- burst(x,y,key,size,r=0){const duration=C.explosionFrames[key]?.reduce((sum,t)=>sum+t,0)||.64;this.effects.push({kind:'sprite-burst',x,y,key,size,r,life:duration,max:duration});}
+ burst(x,y,key,size,r=0){const duration=C.explosionFrames[key]?.reduce((sum,t)=>sum+t,0)||.64;this.effects.push({kind:'sprite-burst',x,y,key,size,r,angle:Math.random()*Math.PI*2,life:duration,max:duration});}
  enemyBurst(e){if(e.boss){this.effect(e.x,e.y,e.size*.7,'#fff2bc');return;}const group=e.type.startsWith('Powerful')?'powerful':/^(Standard|Tough)_/.test(e.type)?'standard-tough':'feeble-mild';this.burst(e.x,e.y,'enemy-'+group,Math.max(120,e.size*1.8));}
  kill(e,meta={}){if(e.dead||e.epoch!==this.epoch||this.mode!=='playing')return;e.dead=true;this.enemyBurst(e);this.emit(e.boss?'boss-kill':'kill');this.award(e.score,e.xp,e.x,e.y-e.size/2);
   this.addCombo(meta);
@@ -132,11 +133,11 @@ class Engine{
   if(this.strawberry>0&&!p.rock)for(const a of[-.4,0,.4])this.bullets.push({id:++this.serial,epoch:this.epoch,x:this.x,y:C.playerY,vx:Math.sin(a)*240,vy:-Math.cos(a)*240,r:5,d:2,owner:'player',tier:0,age:-.12,fire:true,hit:new Set()});
  }
  explode(p){if(p.epoch!==this.epoch||this.mode!=='playing')return;this.effect(p.x,p.y,p.bombRadius,'#fca778');const bomb={x:p.x,y:p.y,r:p.bombRadius,d:p.d,epoch:this.epoch,life:.3,hit:new Set(),just:p.just,charged:p.charged};this.bombs.push(bomb);this.applyBomb(bomb);}
- applyBomb(b){if(b.epoch!==this.epoch||this.mode!=='playing')return;for(const e of this.enemies){if(!e.dead&&!e.inv&&!b.hit.has(e.id)&&hypot(e.x-b.x,e.y-b.y)<b.r+e.size*.38){b.hit.add(e.id);this.hitEnemy(e,b.d,b);if(this.mode!=='playing')return;}}}
+ applyBomb(b){if(b.epoch!==this.epoch||this.mode!=='playing')return;for(const e of this.enemies){if(!e.dead&&!e.inv&&!b.hit.has(e.id)&&within(e.x-b.x,e.y-b.y,b.r+e.size*.38)){b.hit.add(e.id);this.hitEnemy(e,b.d,b);if(this.mode!=='playing')return;}}}
  rockRadius(tier=1){return (50+tier*20)*C.tuning.rockBlastScale/2*.4;}
  destroyRock(o,meta={}){if(o.dead||this.mode!=='playing'||(o.epoch!==undefined&&o.epoch!==this.epoch))return;const epoch=this.epoch;o.dead=true;const r=this.rockRadius(o.tier??1);this.burst(o.x,o.y,(o.tier??1)===2?'rock-medium':'rock-small',r*3,r);this.emit('rock-burst',{tier:o.tier??1});if(!o.rockToken||!o.rockToken.scored){if(o.rockToken)o.rockToken.scored=true;this.award((o.tier??1)===2?500:300,0,o.x,o.y);}
   if(!o.rockToken||!o.rockToken.dropped){if(o.rockToken)o.rockToken.dropped=true;const roll=this.random(),lowHp=this.current.hp<=2,medium=o.tier===2,heartRate=medium?.08:.05,goldLimit=medium?.10:.07;const type=roll<heartRate?'heart':lowHp&&roll<goldLimit?'gold':null;if(type)this.items.push({type,x:o.x,y:o.y,age:0});}
-  for(const q of this.bullets)if(q.owner==='enemy'&&!q.dead&&q.epoch===epoch&&hypot(q.x-o.x,q.y-o.y)<r+q.r)q.dead=true;
+  for(const q of this.bullets)if(q.owner==='enemy'&&!q.dead&&q.epoch===epoch&&within(q.x-o.x,q.y-o.y,r+q.r))q.dead=true;
   const blast={x:o.x,y:o.y,r,d:o.d??C.tiers[o.tier??1].d,epoch,life:.3,hit:new Set(),just:!!meta.just,charged:!!meta.charged};this.bombs.push(blast);this.applyBomb(blast);
  }
  updateItems(dt){for(const item of this.items){item.age+=dt;item.y+=65*(item.type==='rainbow'?1.1:1)*dt;if(hypot(item.x-this.x,item.y-C.playerY)<30)this.collect(item);if(item.y>665)item.dead=true;}this.items=this.items.filter(i=>!i.dead);}
@@ -144,10 +145,10 @@ class Engine{
   if(p.owner==='enemy'){
    const d=hypot(p.x-this.x,p.y-C.playerY);if(this.parry>0&&d<this.radius+p.r){this.reflect(p,d<this.justRadius+p.r);return;}if(d<p.r+this.hitRadius){p.dead=true;this.damage(p.d);return;}
   }else{
-   if(p.just||p.charged)for(const q of this.bullets)if(q.owner==='enemy'&&!q.dead&&hypot(q.x-p.x,q.y-p.y)<q.r+p.r)q.dead=true;
+   if(p.just||p.charged)for(const q of this.bullets)if(q.owner==='enemy'&&!q.dead&&within(q.x-p.x,q.y-p.y,q.r+p.r))q.dead=true;
    if(p.rock&&p.age>=2.2){this.destroyRock(p,p);return;}if(p.bomb&&p.age>=2.2){p.dead=true;this.explode(p);return;}
-   for(const e of this.enemies){if(e.dead||e.inv||p.hit.has(e.id))continue;if(hypot(e.x-p.x,e.y-p.y)<e.size*.38+p.r){p.hit.add(e.id);if(p.rock){this.destroyRock(p,p);}else if(p.bomb){p.dead=true;this.explode(p);}else{this.hitEnemy(e,p.d,p);if(!p.pierce)p.dead=true;}if(p.dead||this.mode!=='playing')break;}}
-   if(!p.dead)for(const o of this.obstacles)if(!o.dead&&hypot(o.x-p.x,o.y-p.y)<o.r+p.r){this.destroyRock(o,p);if(p.rock&&!p.dead&&this.mode==='playing')this.destroyRock(p,p);if(!p.pierce)p.dead=true;break;}
+   for(const e of this.enemies){if(e.dead||e.inv||p.hit.has(e.id))continue;if(within(e.x-p.x,e.y-p.y,e.size*.38+p.r)){p.hit.add(e.id);if(p.rock){this.destroyRock(p,p);}else if(p.bomb){p.dead=true;this.explode(p);}else{this.hitEnemy(e,p.d,p);if(!p.pierce)p.dead=true;}if(p.dead||this.mode!=='playing')break;}}
+   if(!p.dead)for(const o of this.obstacles)if(!o.dead&&within(o.x-p.x,o.y-p.y,o.r+p.r)){this.destroyRock(o,p);if(p.rock&&!p.dead&&this.mode==='playing')this.destroyRock(p,p);if(!p.pierce)p.dead=true;break;}
   }
   if(p.x<-100||p.x>580||p.y<-180||p.y>790||p.age>8)p.dead=true;
  }
