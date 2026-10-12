@@ -6,7 +6,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),hypot=Math.hypot;
 const within=(dx,dy,r)=>Math.abs(dx)<r&&Math.abs(dy)<r&&dx*dx+dy*dy<r*r;
 class Engine{
  constructor(random=Math.random){this.random=random;this.serial=0;this.epoch=0;this.events=[];this.mode='title';this.reset();this.mode='title';}
- reset(){this.epoch++;this.mode='playing';this.time=0;this.runTime=0;this.score=0;this.level=1;this.exp=0;this.stage=0;this.wave=0;this.loop=1;this.active=0;this.x=240;this.vx=0;this.hpFlash=0;this.inv=0;this.parry=0;this.parryAnim=0;this.parryRecovery=0;this.parryResult=null;this.parryRearm=false;this.revivedCount=0;this.reviveBannerTime=0;this.justFlash=0;this.justOwner=null;this.lastTap={left:null,right:null};this.parryCharged=false;this.held=false;this.hold=0;this.chargeReady=false;this.gauge=0;this.stocks=0;this.dodge=0;this.dodgeCooldown=0;this.grape=0;this.strawberry=0;this.combo=0;this.comboEnd=0;this.lastCombo=0;this.comboShow=0;this.obstacleClock=0;this.spawnClock=0;this.killed=0;this.clearTimer=0;this.input={left:false,right:false};this.moths=C.moths.map(m=>({id:m.id,hp:3,maxHp:3,alive:true}));this.enemies=[];this.bullets=[];this.bombs=[];this.items=[];this.obstacles=[];this.effects=[];this.events=[];this.banner='';this.bannerTime=0;this.musicTime=0;this.beginWave(0,0);}
+ reset(){this.demo=false;this.epoch++;this.mode='playing';this.time=0;this.runTime=0;this.score=0;this.level=1;this.exp=0;this.stage=0;this.wave=0;this.loop=1;this.active=0;this.x=240;this.vx=0;this.hpFlash=0;this.inv=0;this.parry=0;this.parryAnim=0;this.parryRecovery=0;this.parryResult=null;this.parryRearm=false;this.revivedCount=0;this.reviveBannerTime=0;this.justFlash=0;this.justOwner=null;this.lastTap={left:null,right:null};this.parryCharged=false;this.held=false;this.hold=0;this.chargeReady=false;this.gauge=0;this.stocks=0;this.dodge=0;this.dodgeCooldown=0;this.grape=0;this.strawberry=0;this.combo=0;this.comboEnd=0;this.lastCombo=0;this.comboShow=0;this.obstacleClock=0;this.spawnClock=0;this.killed=0;this.clearTimer=0;this.input={left:false,right:false};this.moths=C.moths.map(m=>({id:m.id,hp:3,maxHp:3,alive:true}));this.enemies=[];this.bullets=[];this.bombs=[];this.items=[];this.obstacles=[];this.effects=[];this.events=[];this.banner='';this.bannerTime=0;this.musicTime=0;this.beginWave(0,0);}
  emit(type,data={}){this.events.push({type,...data});}
  rand(a,b){return a+(b-a)*this.random();}
  get canMove(){return ['playing','transition','interlude'].includes(this.mode);}
@@ -35,7 +35,7 @@ class Engine{
   if(type.startsWith('Standard'))e.targetY=type.endsWith('A')?this.rand(350,450):this.rand(200,400);
   if(type.startsWith('Tough')){e.x=e.dir>0?-size/2:480+size/2;e.y=type.endsWith('A')?this.rand(290,350):this.rand(200,400);e.targetY=e.y;}
   if(def.boss){e.x=240;e.targetY=200;e.shot=1;}
-  if(type.startsWith('Powerful')){e.targetY=50;e.angle=type.endsWith('A')?0:Math.PI;e.x=240+Math.cos(e.angle)*(type.endsWith('B')?400:200);}
+  if(type.startsWith('Powerful')){e.targetY=50;e.angle=type.endsWith('A')?0:Math.PI;e.x=240+Math.cos(e.angle)*(type.endsWith('B')?400:250);}
   this.enemies.push(e);return e;
  }
  replenish(){if(this.mode!=='playing')return;for(const [type,cap]of Object.entries(this.def.caps)){const n=this.enemies.filter(e=>!e.dead&&e.type===type).length;for(let i=n;i<cap;i++)this.spawn(type);}}
@@ -100,7 +100,7 @@ class Engine{
   if(e.phase==='enter'){
    let reached;if(type==='Tough')reached=this.moveTo(e,e.dir>0?e.size/2:480-e.size/2,e.y,b?150:90,dt);else reached=this.moveTo(e,e.x,e.targetY,e.type==='Feeble_B'?200:100,dt);
    if(type==='Standard'&&e.y>=100){e.inv=false;if(e.shot<=0){this.shoot(e);e.shot=2;}}
-   if(reached){e.inv=false;e.phase=type==='Tough'?'move':'hold';e.timer=type==='Feeble'?(b?2:3):type==='Tough'?this.rand(b?2:1,b?4:3):3;if(e.type==='Standard_B'){this.standardBWarp(e);}else if(type==='Powerful')e.shot=b?3:5;else if(e.type==='Tough_B')e.shot=4;else if(type!=='Standard')e.shot=type==='Boss'?1:0;}
+   if(reached){e.inv=false;e.phase=type==='Tough'?'move':'hold';e.timer=type==='Feeble'?(b?2:3):type==='Tough'?this.rand(b?2:1,b?4:3):3;if(e.type==='Standard_B'){this.standardBWarp(e);}else if(type==='Powerful')e.shot=b?3:4;else if(e.type==='Tough_B')e.shot=4;else if(type!=='Standard')e.shot=type==='Boss'?1:0;}
    return;
   }
   if(e.phase==='warp'){if(e.timer<=0){e.x=e.warpTarget?.x??this.rand(e.size/2,480-e.size/2);e.y=e.warpTarget?.y??(type==='Boss'?this.rand(e.size/2,450-e.size/2):this.rand(100,type==='Mild'?500:200));e.warpTarget=null;e.inv=false;e.phase='hold';e.timer=type==='Boss'?(e.hp<=e.maxHp/2?1:3):type==='Standard'?5:3;e.shot=2;}return;}
@@ -109,7 +109,7 @@ class Engine{
    if(e.type==='Boss_A'){if(e.shot<=0&&e.phase!=='charge'&&!(e.pendingShots?.some(s=>s.tier===4))){this.shoot(e,2);e.shot=1;}if(e.timer<=0&&!(e.pendingShots?.length)&&(e.age-(e.lastSpitAt??-Infinity)>=.44)){e.phase=e.phase==='charge'?'hold':'charge';e.timer=e.phase==='charge'?2:8;if(e.phase==='hold')this.shoot(e,4);}}
    else if(e.timer<=C.tuning.attackWarning){if(e.type==='Boss_C')for(const a of(e.hp<=e.maxHp/2?[-.42,-.14,.14,.42]:[-.28,0,.28]))this.shoot(e,4,a);else this.shoot(e,4);this.beginWarp(e);}return;
   }
-  if(type==='Powerful'){const enraged=this.enemies.some(boss=>boss.type==='Boss_C'&&!boss.dead&&boss.hp<=boss.maxHp/2);if(enraged&&!e.enraged){e.enraged=true;if(b)e.shot=Math.min(e.shot,2);}e.angle+=(b?-1:1)*dt*.65*(b&&enraged?2:1);const radius=b?400:200;e.x=240+Math.cos(e.angle)*radius;e.y=50+Math.sin(e.angle)*radius;if(e.shot<=0){this.shoot(e,3);if(!b&&enraged)for(const offset of [.16,.32]){this.shoot(e,3);e.pendingShots.at(-1).delay+=offset;}e.shot=b?(enraged?2:3):5;}return;}
+  if(type==='Powerful'){const enraged=this.enemies.some(boss=>boss.type==='Boss_C'&&!boss.dead&&boss.hp<=boss.maxHp/2);if(enraged&&!e.enraged){e.enraged=true;if(b)e.shot=Math.min(e.shot,2);}e.angle+=(b?-1:1)*dt*.65*(b&&enraged?2:1);const radius=b?400:250;e.x=240+Math.cos(e.angle)*radius;e.y=50+Math.sin(e.angle)*radius;if(e.shot<=0){this.shoot(e,3);if(!b&&enraged)for(const offset of [.16,.32]){this.shoot(e,3);e.pendingShots.at(-1).delay+=offset;}e.shot=b?(enraged?2:3):4;}return;}
   if(type==='Standard'){
    if(e.shot<=0){this.shoot(e);e.shot=!b&&e.cycles>0?1:2;}
    if(e.phase==='hold'&&e.timer<=0){e.phase='descend';e.targetY=b?this.rand(200,400):this.rand(350,450);}

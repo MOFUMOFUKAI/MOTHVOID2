@@ -20,7 +20,7 @@ const C={width:480,height:720,playerY:594,version:'35.28',
   Standard_A:{hp:6,size:90,score:3000,xp:30,tier:2},Tough_A:{hp:10,size:120,score:4000,xp:40,tier:3},
   Feeble_B:{hp:1,size:48,score:2000,xp:20,tier:0},Mild_B:{hp:3,size:60,score:3000,xp:30,tier:1},
   Standard_B:{hp:6,size:90,score:4000,xp:40,tier:2},Tough_B:{hp:10,size:120,score:5000,xp:50,tier:3},
-  Powerful_A:{hp:15,size:200,score:8000,xp:80,tier:3},Powerful_B:{hp:15,size:200,score:9000,xp:90,tier:3},
+  Powerful_A:{hp:20,size:200,score:8000,xp:80,tier:3},Powerful_B:{hp:20,size:200,score:9000,xp:90,tier:3},
   Boss_A:{hp:300,size:300,score:50000,xp:500,tier:2,boss:true},
   Boss_B:{hp:240,size:200,score:35000,xp:350,tier:4,boss:true},
   Boss_C:{hp:460,size:300,score:90000,xp:900,tier:4,boss:true}

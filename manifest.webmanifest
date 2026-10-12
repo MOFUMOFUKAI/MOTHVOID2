@@ -1,0 +1,17 @@
+{
+  "name": "MOTHVOID II — THREE WINGS AGAINST THE VOID",
+  "short_name": "MOTHVOID II",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#170b16",
+  "icons": [
+    {
+      "src": "assets/title/game-icon-mothvoid2.png?v=1",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
